@@ -167,3 +167,6 @@ app/
     ├── ui/             # TypeScript/Express - Frontend
     └── admin/          # TypeScript/Express - Panel de administración
 ```
+
+## Prueba de ruleset
+Rama de prueba para verificar Branch Protection Rules y flujo de PR.
