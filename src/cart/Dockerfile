@@ -1,7 +1,8 @@
 FROM python:3.12.13-alpine3.23 AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /tmp/* /var/tmp/* /var/cache/apk/*
 
 FROM python:3.12.13-alpine3.23 AS production
 WORKDIR /app
