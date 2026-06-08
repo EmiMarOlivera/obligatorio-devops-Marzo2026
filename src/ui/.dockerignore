@@ -1,0 +1,19 @@
+# Evita mandar al daemon de Docker archivos innecesarios al hacer COPY (practica 2)
+
+# Dependencias instaladas localmente (pueden pesar cientos de MB)
+node_modules
+
+# Artefactos de compilacion previos
+dist
+
+# Archivos de control de versiones
+.git
+.gitignore
+
+# El propio dockerignore y Dockerfile no son necesarios dentro de la imagen
+.dockerignore
+Dockerfile
+
+# Logs y archivos temporales
+*.log
+npm-debug.log*
