@@ -6,12 +6,4 @@ Dockerfile
 .env
 .env.*
 catalog
-Dockerfile
-.dockerignore
-.git
-.gitignore
-*.log
-.env
-.env.*
-catalog
 *.test
