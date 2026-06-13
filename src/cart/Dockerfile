@@ -6,15 +6,15 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 
 FROM python:3.12.13-alpine3.23 AS production
 WORKDIR /app
-# Crear un usuario/grupo no-root para ejecutar la aplicación // seccion aportada por ia
+# Crear un usuario/grupo no-root para ejecutar la aplicación 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-# Copiar paquetes Python instalados desde el stage builder // seccion aportada por ia
+# Copiar paquetes Python instalados desde el stage builder 
 COPY --from=builder /usr/local/lib/python3.12/site-packages/ /usr/local/lib/python3.12/site-packages/
-# Copiar scripts de consola (ej: uvicorn) instalados por pip // seccion aportada por ia
+# Copiar scripts de consola (ej: uvicorn) instalados por pip 
 COPY --from=builder /usr/local/bin/ /usr/local/bin/
-# Copiar código de la app y asignar propiedad al usuario no-root // seccion aportada por ia
+# Copiar código de la app y asignar propiedad al usuario no-root 
 COPY --chown=appuser:appgroup app/ ./app/
-# Ejecutar el contenedor como usuario no-root // seccion aportada por ia
+# Ejecutar el contenedor como usuario no-root 
 USER appuser
 ENV CART_PERSISTENCE_PROVIDER=in-memory \
     PORT=8080
