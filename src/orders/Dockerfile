@@ -1,25 +1,41 @@
-FROM golang:1.24
-<<<<<<< Updated upstream
-WORKDIR /app
-COPY . .
-RUN go mod download
-RUN go build -o orders .
-EXPOSE 8080
-CMD ["./orders"]
-=======
+# syntax=docker/dockerfile:1
+# Activa BuildKit: build en paralelo y mejor cache.
+
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+# Imagen oficial de Go, tag especifico y variante Alpine liviana.
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
-# Copiamos primero los archivos de dependencias para que Docker
-# pueda reutilizar esta capa si cambia el codigo pero no las librerias
+# Copiamos primero los manifiestos para aprovechar cache de dependencias.
 COPY go.mod go.sum ./
+
+# Descargamos dependencias antes de copiar el codigo fuente.
 RUN go mod download
 
-# Despues copiamos el resto del codigo fuente y compilamos el binario.
+# Copiamos el resto del codigo.
 COPY . .
-RUN go build -o orders .
 
+# Compilamos el binario de catalog.
+RUN go build -o catalog .
+
+# ── Stage 2: production ───────────────────────────────────────────────────────
+# Imagen limpia y liviana: no incluye toolchain de Go ni archivos de build.
+FROM alpine:3.22 AS production
+
+WORKDIR /app
+
+# Creamos usuario y grupo sin privilegios para no correr como root.
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Copiamos solo el binario compilado desde el builder y lo dejamos a nombre del usuario no-root.
+COPY --from=builder --chown=appuser:appgroup /app/catalog ./catalog
+
+# A partir de aqui el proceso corre como appuser.
+USER appuser
+
+# Documenta el puerto que expone el contenedor.
 EXPOSE 8080
 
-CMD ["./orders"]
->>>>>>> Stashed changes
+# Comando de inicio.
+CMD ["./catalog"]
