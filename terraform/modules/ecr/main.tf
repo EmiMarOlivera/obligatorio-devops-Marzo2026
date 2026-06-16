@@ -17,6 +17,7 @@ resource "aws_ecr_repository" "services" {
 
   name                 = "retailstore-${var.environment}-${each.key}"
   image_tag_mutability = var.image_tag_mutability
+  force_delete         = true
 
   # scan_on_push = true activa el escaneo automático de vulnerabilidades
   # cada vez que se publica una imagen nueva (requisito 5.3 del obligatorio)
