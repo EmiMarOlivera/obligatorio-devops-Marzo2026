@@ -1,0 +1,92 @@
+name: Terraform CI/CD
+
+on:
+  push:
+    branches: ["main", "staging", "dev"]
+    paths:
+      - 'terraform/**'
+  pull_request:
+    branches: ["main", "staging", "dev"]
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Entorno a desplegar (dev/staging/prod)"
+        required: true
+        default: "dev"
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  deploy:
+    name: Terraform ${{ github.event.inputs.environment || github.ref_name }} CI/CD
+    runs-on: ubuntu-latest
+
+    env:
+      TF_IN_AUTOMATION: true
+      AWS_REGION: us-east-1
+
+    defaults:
+      run:
+        working-directory: terraform/environments/${{ github.event.inputs.environment|| (github.ref_name == 'main' && 'prod')|| (github.ref_name == 'staging' && 'staging')|| 'dev' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        id: plan
+        run: terraform plan -var-file="terraform.tfvars" -out=tfplan
+        continue-on-error: true
+
+      # Publicar el plan como comentario en PRs
+      - name: Comment plan on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `### Terraform Plan — \`${{ github.event.inputs.environment || github.ref_name }}\`
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            *Autor: @${{ github.actor }}, Acción: \`${{ github.event_name }}\`*`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+
+      - name: Terraform Plan Status
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
+
+      # Apply solo en push (no en PRs)
+      - name: Terraform Apply
+        if: github.event_name != 'pull_request'
+        run: terraform apply -auto-approve tfplan
