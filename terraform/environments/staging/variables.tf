@@ -9,24 +9,19 @@ variable "environment" {
   type        = string
 }
 
-variable "vpc_name" {
-  description = "Nombre de la VPC del ambiente"
-  type        = string
-}
-
-variable "vpc_cidr_block" {
+variable "vpc_cidr" {
   description = "Bloque CIDR principal para la VPC del ambiente"
   type        = string
   default     = "10.0.0.0/16"
 }
 
-variable "public_subnet_cidr_blocks" {
+variable "public_subnet_cidrs" {
   description = "Bloques CIDR para las subredes publicas"
   type        = list(string)
   default     = ["10.0.1.0/24", "10.0.2.0/24"]
 }
 
-variable "private_subnet_cidr_blocks" {
+variable "private_subnet_cidrs" {
   description = "Bloques CIDR para las subredes privadas"
   type        = list(string)
 }
@@ -35,6 +30,12 @@ variable "azs" {
   description = "Zonas de disponibilidad donde se crearan las subredes"
   type        = list(string)
   default     = ["us-east-1a", "us-east-1b"]
+}
+
+variable "enable_nat_gateway" {
+  description = "Indica si se deben crear NAT Gateways para que las subredes privadas tengan salida a internet"
+  type        = bool
+  default     = true
 }
 
 variable "cluster_name" {
