@@ -166,4 +166,56 @@ app/
     ├── orders/         # Go - Gestión de órdenes
     ├── ui/             # TypeScript/Express - Frontend
     └── admin/          # TypeScript/Express - Panel de administración
+
+terraform/
+├── bootstrap/          # Crea el bucket S3 y tabla DynamoDB para el estado remoto (se ejecuta una sola vez)
+├── modules/
+│   ├── networking/     # Módulo reutilizable: VPC, subnets, Internet Gateway, NAT Gateways
+│   └── ecr/            # Módulo reutilizable: repositorios de imágenes Docker por microservicio
+└── environments/
+    ├── dev/            # Ambiente de desarrollo    — CIDR 10.0.0.0/16
+    ├── staging/        # Ambiente de staging       — CIDR 10.1.0.0/16
+    └── prod/           # Ambiente de producción    — CIDR 10.2.0.0/16
 ```
+
+---
+
+## Infraestructura en AWS (Terraform)
+
+### Prerrequisitos
+
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.5+
+- [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html) configurado con credenciales válidas
+
+```bash
+aws configure   # ingresar Access Key, Secret Key y región (us-east-1)
+```
+
+### Paso 1 — Bootstrap (solo la primera vez)
+
+Crea el bucket S3 y la tabla DynamoDB que almacenan el estado remoto de Terraform. Se ejecuta una única vez por equipo.
+
+```bash
+cd terraform/bootstrap
+cp terraform.tfvars.example terraform.tfvars   # completar con el nombre del bucket elegido
+terraform init
+terraform apply
+```
+
+Una vez creado el bucket, reemplazar `<nombre-del-bucket>` en los archivos `terraform/environments/*/backend.tf` con el nombre real.
+
+### Paso 2 — Inicializar y aplicar un ambiente
+
+```bash
+cd terraform/environments/dev   # o staging, o prod
+terraform init
+terraform apply
+```
+
+### Ambientes
+
+| Ambiente | VPC CIDR     | Subnets públicas            | Subnets privadas            |
+|----------|--------------|-----------------------------|------------------------------|
+| dev      | 10.0.0.0/16  | 10.0.1.0/24, 10.0.2.0/24   | 10.0.3.0/24, 10.0.4.0/24   |
+| staging  | 10.1.0.0/16  | 10.1.1.0/24, 10.1.2.0/24   | 10.1.3.0/24, 10.1.4.0/24   |
+| prod     | 10.2.0.0/16  | 10.2.1.0/24, 10.2.2.0/24   | 10.2.3.0/24, 10.2.4.0/24   |
