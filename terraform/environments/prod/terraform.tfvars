@@ -11,3 +11,9 @@ enable_nat_gateway   = true
 # ECR — prod retiene más imágenes y usa tags inmutables (en main.tf)
 services        = ["ui", "catalog", "cart", "checkout", "orders", "admin"]
 max_image_count = 30
+
+# ECS / App
+cluster_name      = "retailstore-prod-cluster"
+app_cpu           = 1024
+app_memory        = 2048
+app_desired_count = 2

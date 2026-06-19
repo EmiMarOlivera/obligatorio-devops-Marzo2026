@@ -11,3 +11,10 @@ enable_nat_gateway   = true
 # ECR
 services        = ["ui", "catalog", "cart", "checkout", "orders", "admin"]
 max_image_count = 15
+
+
+# ECS / App
+cluster_name      = "retailstore-staging-cluster"
+app_cpu           = 512
+app_memory        = 1024
+app_desired_count = 1

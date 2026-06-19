@@ -46,3 +46,24 @@ variable "max_image_count" {
   type        = number
   default     = 15
 }
+
+
+variable "cluster_name" {
+  description = "Nombre del cluster ECS del ambiente"
+  type        = string
+}
+
+variable "app_cpu" {
+  description = "CPU asignada a la tarea ECS Fargate"
+  type        = number
+}
+
+variable "app_memory" {
+  description = "Memoria en MB asignada a la tarea ECS Fargate"
+  type        = number
+}
+
+variable "app_desired_count" {
+  description = "Cantidad deseada de tareas ECS en ejecucion"
+  type        = number
+}
