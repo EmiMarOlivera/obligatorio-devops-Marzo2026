@@ -229,32 +229,29 @@ jobs:
         env:
           ENV: ${{ needs.build-and-push.outputs.environment }}
           REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          # TODO: estos valores los define Terraform - coordinar con el equipo
-          # ECS_CLUSTER: retailstore-cluster-${{ needs.build-and-push.outputs.environment }}
-          # ECS_SERVICE: retailstore-${{ needs.build-and-push.outputs.environment }}
-          # ECS_TASK_FAMILY: retailstore-${{ needs.build-and-push.outputs.environment }}
-          # CONTAINER_NAME: retailstore-${{ needs.build-and-push.outputs.environment }}
+          ECS_CLUSTER: retailstore-${{ needs.build-and-push.outputs.environment }}-cluster
+          ECS_SERVICE: ${{ matrix.service }}
+          ECS_TASK_FAMILY: ${{ matrix.service }}
+          CONTAINER_NAME: ${{ matrix.service }}
         run: |
           IMAGE_URI="$REGISTRY/retailstore-$ENV-${{ matrix.service }}:${{ github.sha }}"
-          echo "Deploy pendiente para $IMAGE_URI - requiere infraestructura Terraform lista"
-          # TODO: descomentar cuando Terraform esté aplicado
-          # TASK_DEF=$(aws ecs describe-task-definition \
-          #   --task-definition "$ECS_TASK_FAMILY" \
-          #   --query 'taskDefinition' \
-          #   --output json)
-          # NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
-          #   --arg IMAGE "$IMAGE_URI" \
-          #   --arg NAME "$CONTAINER_NAME" \
-          #   '.containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end)')
-          # NEW_TASK_ARN=$(aws ecs register-task-definition \
-          #   --family "$ECS_TASK_FAMILY" \
-          #   --cli-input-json "$(echo $NEW_TASK_DEF | jq '{containerDefinitions,networkMode,requiresCompatibilities,cpu,memory,executionRoleArn,taskRoleArn} | with_entries(select(.value != null))')" \
-          #   --query 'taskDefinition.taskDefinitionArn' \
-          #   --output text)
-          # aws ecs update-service \
-          #   --cluster "$ECS_CLUSTER" \
-          #   --service "$ECS_SERVICE" \
-          #   --task-definition "$NEW_TASK_ARN"
-          # aws ecs wait services-stable \
-          #   --cluster "$ECS_CLUSTER" \
-          #   --services "$ECS_SERVICE"
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition "$ECS_TASK_FAMILY" \
+            --query 'taskDefinition' \
+            --output json)
+          NEW_TASK_DEF=$(echo "$TASK_DEF" | jq \
+            --arg IMAGE "$IMAGE_URI" \
+            --arg NAME "$CONTAINER_NAME" \
+            '.containerDefinitions |= map(if .name == $NAME then .image = $IMAGE else . end)')
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --family "$ECS_TASK_FAMILY" \
+            --cli-input-json "$(echo $NEW_TASK_DEF | jq '{containerDefinitions,networkMode,requiresCompatibilities,cpu,memory,executionRoleArn,taskRoleArn} | with_entries(select(.value != null))')" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          aws ecs update-service \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$NEW_TASK_ARN"
+          aws ecs wait services-stable \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"

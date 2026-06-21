@@ -3,6 +3,6 @@
 # Sugerencia: agregar las iniciales del equipo o un número aleatorio.
 # Ejemplo: retailstore-tfstate-g04  |  retailstore-tfstate-2026
 
-bucket_name         = "retailstore-tfstate-REEMPLAZAR"
+bucket_name         = "retailstore-tfstate-fne26"
 dynamodb_table_name = "retailstore-tfstate-lock"
 aws_region          = "us-east-1"
