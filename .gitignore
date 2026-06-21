@@ -1,2 +1,5 @@
 .env
 CLAUDE.local.md
+.terraform/
+*.tfstate
+*.tfstate.backup

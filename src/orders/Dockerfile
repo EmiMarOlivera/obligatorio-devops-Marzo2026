@@ -3,7 +3,7 @@
 
 # ── Stage 1: builder ──────────────────────────────────────────────────────────
 # Imagen oficial de Go, tag especifico y variante Alpine liviana.
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.5-alpine3.22 AS builder
 
 WORKDIR /app
 
@@ -16,8 +16,8 @@ RUN go mod download
 # Copiamos el resto del codigo.
 COPY . .
 
-# Compilamos el binario de catalog.
-RUN go build -o catalog .
+# Compilamos el binario de orders.
+RUN go build -o orders .
 
 # ── Stage 2: production ───────────────────────────────────────────────────────
 # Imagen limpia y liviana: no incluye toolchain de Go ni archivos de build.
@@ -29,7 +29,7 @@ WORKDIR /app
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Copiamos solo el binario compilado desde el builder y lo dejamos a nombre del usuario no-root.
-COPY --from=builder --chown=appuser:appgroup /app/catalog ./catalog
+COPY --from=builder --chown=appuser:appgroup /app/orders ./orders
 
 # A partir de aqui el proceso corre como appuser.
 USER appuser
@@ -38,4 +38,4 @@ USER appuser
 EXPOSE 8080
 
 # Comando de inicio.
-CMD ["./catalog"]
+CMD ["./orders"]
