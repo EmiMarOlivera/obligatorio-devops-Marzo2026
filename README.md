@@ -153,6 +153,48 @@ docker compose logs -f <servicio>
 
 ---
 
+## Pipelines CI/CD
+
+El repositorio cuenta con dos pipelines definidos en `.github/workflows/`:
+
+### app.yml — Aplicación
+
+Se dispara ante push o PR a `main`, `staging` o `dev` cuando hay cambios en `src/`. También acepta ejecución manual (`workflow_dispatch`) eligiendo el ambiente destino.
+
+```
+secrets-scan → code-scan → build-and-push → image-scan → deploy
+```
+
+| Job | Herramientas | Descripción |
+|-----|-------------|-------------|
+| `secrets-scan` | Gitleaks | Escanea el historial Git completo buscando credenciales expuestas. Bloquea todo si detecta algo. |
+| `code-scan` | Semgrep, Trivy (fs) | SAST sobre el código fuente + SCA sobre dependencias (`go.mod`, `package.json`, etc.). |
+| `build-and-push` | Docker, ECR | Build de imagen con labels de trazabilidad, push a ECR con tag SHA y `latest`. Matriz sobre 6 servicios. |
+| `image-scan` | Trivy (image) | Escanea la imagen ya construida en ECR buscando CVEs en el SO base y librerías del contenedor. |
+| `deploy` | AWS ECS | Registra nueva task definition con la imagen del SHA y actualiza el servicio ECS. |
+
+### infra.yml — Infraestructura
+
+Se dispara ante push o PR a `main`, `staging` o `dev` cuando hay cambios en `terraform/`.
+
+| Step | Herramientas | Descripción |
+|------|-------------|-------------|
+| Gitleaks | Gitleaks | Detección de secretos antes de cualquier operación con AWS. |
+| Terraform Init / Validate | Terraform | Inicialización del backend remoto (S3) y validación sintáctica. |
+| Trivy IaC Scan | Trivy (config) | Escaneo de la configuración Terraform buscando misconfigurations. |
+| Terraform Plan | Terraform | Genera el plan y lo publica como comentario en PRs. |
+| Terraform Apply | Terraform | Aplica el plan solo en push (no en PRs). |
+
+### Quality Gates de Seguridad
+
+| Gate | Configuración | Efecto |
+|------|--------------|--------|
+| Secretos en código | Gitleaks — cualquier hallazgo | Pipeline se detiene, nada se buildea ni deployea |
+| CVEs en dependencias | Trivy SCA — CRITICAL/HIGH con fix disponible | `code-scan` falla antes del build |
+| CVEs en imagen | Trivy image — CRITICAL/HIGH con fix disponible | `image-scan` falla antes del deploy |
+
+---
+
 ## Estructura del repositorio
 
 ```
