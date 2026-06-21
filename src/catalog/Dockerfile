@@ -3,9 +3,12 @@
 
 # ── Stage 1: builder ──────────────────────────────────────────────────────────
 # Imagen oficial de Go, tag especifico y variante Alpine liviana.
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24.5-alpine3.22 AS builder
 
 WORKDIR /app
+
+# gcc y musl-dev son necesarios para compilar go-sqlite3 (requiere CGO).
+RUN apk add --no-cache gcc musl-dev
 
 # Copiamos primero los manifiestos para aprovechar cache de dependencias.
 COPY go.mod go.sum ./
