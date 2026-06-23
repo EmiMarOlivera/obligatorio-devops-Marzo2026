@@ -16,15 +16,10 @@ export const options = {
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:8080';
 
 export default function () {
-  const home = http.get(`${BASE_URL}/`);
-  check(home, {
-    'homepage: status 200': (r) => r.status === 200,
-    'homepage: responde en menos de 2s': (r) => r.timings.duration < 2000,
-  });
-
-  const catalog = http.get(`${BASE_URL}/catalog`);
+  const catalog = http.get(`${BASE_URL}/catalog/products`);
   check(catalog, {
-    'catalog: status 200': (r) => r.status === 200,
+    'catalog products: status 200': (r) => r.status === 200,
+    'catalog products: responde en menos de 2s': (r) => r.timings.duration < 2000,
   });
 
   sleep(1);
