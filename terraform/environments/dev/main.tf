@@ -69,3 +69,13 @@ module "app" {
   desired_count           = var.app_desired_count
   aws_region              = var.aws_region
 }
+
+module "observability" {
+  source = "../../modules/observability"
+
+  environment             = var.environment
+  cluster_name            = var.cluster_name
+  services                = var.services
+  labrole_arn             = data.aws_iam_role.labrole.arn
+  checkout_alb_arn_suffix = module.app["checkout"].alb_arn_suffix
+}
