@@ -1,23 +1,3 @@
-resource "aws_service_discovery_private_dns_namespace" "retail" {
-  name = "retail.local"
-  vpc  = module.networking.vpc_id
-}
-
-resource "aws_service_discovery_service" "postgres" {
-  name = "postgres"
-
-  dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.retail.id
-
-    dns_records {
-      ttl  = 10
-      type = "A"
-    }
-
-    routing_policy = "MULTIVALUE"
-  }
-}
-
 resource "aws_security_group" "postgres" {
   name        = "postgres-sg"
   description = "Allow PostgreSQL traffic from within the VPC"
@@ -36,6 +16,39 @@ resource "aws_security_group" "postgres" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# NLB interno para que los servicios se conecten a postgres via TCP 5432
+# Reemplaza Service Discovery (no disponible en AWS Academy LabRole)
+resource "aws_lb" "postgres_nlb" {
+  name               = "postgres-nlb"
+  internal           = true
+  load_balancer_type = "network"
+  subnets            = module.networking.private_subnet_ids
+}
+
+resource "aws_lb_target_group" "postgres_nlb" {
+  name        = "postgres-nlb-tg"
+  port        = 5432
+  protocol    = "TCP"
+  vpc_id      = module.networking.vpc_id
+  target_type = "ip"
+
+  health_check {
+    protocol = "TCP"
+    port     = 5432
+  }
+}
+
+resource "aws_lb_listener" "postgres_nlb" {
+  load_balancer_arn = aws_lb.postgres_nlb.arn
+  port              = 5432
+  protocol          = "TCP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.postgres_nlb.arn
   }
 }
 
@@ -93,7 +106,9 @@ resource "aws_ecs_service" "postgres" {
     assign_public_ip = false
   }
 
-  service_registries {
-    registry_arn = aws_service_discovery_service.postgres.arn
+  load_balancer {
+    target_group_arn = aws_lb_target_group.postgres_nlb.arn
+    container_name   = "postgres"
+    container_port   = 5432
   }
 }
