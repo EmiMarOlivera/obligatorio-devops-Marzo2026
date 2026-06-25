@@ -79,3 +79,9 @@ variable "health_check_path" {
   type        = string
   default     = "/health"
 }
+
+variable "environment_variables" {
+  description = "Variables de entorno a inyectar en el contenedor"
+  type        = list(object({ name = string, value = string }))
+  default     = []
+}
