@@ -151,6 +151,8 @@ resource "aws_ecs_task_definition" "main" {
         }
       ]
 
+      environment = var.environment_variables
+
       logConfiguration = {
         logDriver = "awslogs"
         options = {
