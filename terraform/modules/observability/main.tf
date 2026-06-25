@@ -118,6 +118,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           title  = "CPU por Servicio ECS (%)"
           view   = "timeSeries"
+          region = var.aws_region
           period = 300
           metrics = [
             for svc in var.services :
@@ -134,6 +135,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           title  = "Memoria por Servicio ECS (%)"
           view   = "timeSeries"
+          region = var.aws_region
           period = 300
           metrics = [
             for svc in var.services :
@@ -150,6 +152,7 @@ resource "aws_cloudwatch_dashboard" "main" {
         properties = {
           title  = "Errores 5xx - Checkout ALB"
           view   = "timeSeries"
+          region = var.aws_region
           period = 300
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", var.checkout_alb_arn_suffix]

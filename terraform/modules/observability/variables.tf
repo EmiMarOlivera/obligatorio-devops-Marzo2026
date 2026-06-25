@@ -22,3 +22,9 @@ variable "checkout_alb_arn_suffix" {
   description = "Sufijo del ARN del ALB de checkout, necesario para la metrica de errores 5xx"
   type        = string
 }
+
+variable "aws_region" {
+  description = "Región AWS donde se despliega el módulo"
+  type        = string
+  default     = "us-east-1"
+}
