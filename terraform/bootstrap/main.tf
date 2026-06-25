@@ -13,47 +13,8 @@ provider "aws" {
   region = var.aws_region
 }
 
-# -------------------------------------------------------------------
-# S3 Bucket para almacenar el estado de Terraform
-# El estado es el archivo que Terraform usa para saber qué recursos
-# ya existen en la nube. Al guardarlo en S3, todos los integrantes
-# del equipo trabajan sobre el mismo estado.
-# -------------------------------------------------------------------
-resource "aws_s3_bucket" "tfstate" {
-  bucket = var.bucket_name
-
-  tags = {
-    Project   = "retailstore"
-    ManagedBy = "terraform"
-  }
-}
-
-resource "aws_s3_bucket_versioning" "tfstate" {
-  bucket = aws_s3_bucket.tfstate.id
-
-  versioning_configuration {
-    status = "Enabled"
-  }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
-  bucket = aws_s3_bucket.tfstate.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "tfstate" {
-  bucket = aws_s3_bucket.tfstate.id
-
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
+# El bucket S3 para el estado se crea manualmente una única vez fuera
+# de Terraform. El nombre se pasa al pipeline como secreto TF_BACKEND_BUCKET.
 
 # -------------------------------------------------------------------
 # DynamoDB Table para bloqueo del estado (state locking)
