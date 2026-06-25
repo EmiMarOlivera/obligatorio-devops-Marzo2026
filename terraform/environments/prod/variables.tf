@@ -38,7 +38,7 @@ variable "enable_nat_gateway" {
 variable "services" {
   description = "Lista de microservicios con repositorio ECR"
   type        = list(string)
-  default     = ["ui", "catalog", "cart", "checkout", "orders", "admin"]
+  default     = ["ui", "catalog", "cart", "checkout", "orders", "admin", "postgres"]
 }
 
 variable "max_image_count" {

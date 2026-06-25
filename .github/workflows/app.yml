@@ -78,7 +78,7 @@ jobs:
     needs: code-scan  # Habilitar cuando se active el job de Semgrep
     strategy:
       matrix:
-        service: [ui, catalog, cart, checkout, orders, admin]
+        service: [ui, catalog, cart, checkout, orders, admin, postgres]
 
     env:
       AWS_REGION: us-east-1
