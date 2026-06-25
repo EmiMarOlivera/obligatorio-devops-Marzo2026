@@ -4,7 +4,7 @@
 # Este bloque NO admite variables — debe ser hardcodeado.
 terraform {
   backend "s3" {
-    bucket         = "retailstore-tfstate-fne262"
+    bucket         = "retailstore-tfstate-fne26"
     key            = "dev/terraform.tfstate"
     region         = "us-east-1"
     dynamodb_table = "retailstore-tfstate-lock"
