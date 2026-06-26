@@ -9,7 +9,7 @@ azs                  = ["us-east-1a", "us-east-1b"]
 enable_nat_gateway   = true
 
 # ECR
-services        = ["ui", "catalog", "cart", "checkout", "orders", "admin"]
+services        = ["ui", "catalog", "cart", "checkout", "orders", "admin", "postgres"]
 max_image_count = 15
 
 

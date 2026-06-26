@@ -54,21 +54,21 @@ module "ecs" {
 locals {
   service_env_vars = {
     orders = [
-      { name = "RETAIL_ORDERS_PERSISTENCE_ENDPOINT", value = "postgres.retail.local:5432" },
+      { name = "RETAIL_ORDERS_PERSISTENCE_ENDPOINT", value = "${aws_lb.postgres_nlb.dns_name}:5432" },
       { name = "RETAIL_ORDERS_PERSISTENCE_USERNAME",  value = "retail_user" },
       { name = "RETAIL_ORDERS_PERSISTENCE_PASSWORD",  value = "retail_pass" },
       { name = "RETAIL_ORDERS_PERSISTENCE_NAME",      value = "orders" }
     ]
     catalog = [
       { name = "RETAIL_CATALOG_PERSISTENCE_PROVIDER",  value = "postgres" },
-      { name = "RETAIL_CATALOG_PERSISTENCE_ENDPOINT",  value = "postgres.retail.local:5432" },
+      { name = "RETAIL_CATALOG_PERSISTENCE_ENDPOINT",  value = "${aws_lb.postgres_nlb.dns_name}:5432" },
       { name = "RETAIL_CATALOG_PERSISTENCE_DB_NAME",   value = "catalogdb" },
       { name = "RETAIL_CATALOG_PERSISTENCE_USER",      value = "retail_user" },
       { name = "RETAIL_CATALOG_PERSISTENCE_PASSWORD",  value = "retail_pass" }
     ]
     cart = [
       { name = "CART_PERSISTENCE_PROVIDER", value = "postgres" },
-      { name = "CART_POSTGRES_HOST",        value = "postgres.retail.local" },
+      { name = "CART_POSTGRES_HOST",        value = aws_lb.postgres_nlb.dns_name },
       { name = "CART_POSTGRES_PORT",        value = "5432" },
       { name = "CART_POSTGRES_DB",          value = "cartdb" },
       { name = "CART_POSTGRES_USER",        value = "retail_user" },
@@ -78,7 +78,7 @@ locals {
 }
 
 module "app" {
-  for_each = toset(var.services)
+  for_each = toset([for s in var.services : s if s != "postgres"])
   source   = "../../modules/ecs_service"
 
   app_name                = each.value
