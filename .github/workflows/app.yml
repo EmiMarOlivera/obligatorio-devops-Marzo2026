@@ -179,6 +179,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Run Trivy vulnerability scanner
+        id: trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ needs.build-and-push.outputs.registry }}/retailstore-${{ needs.build-and-push.outputs.environment }}-${{ matrix.service }}:${{ github.sha }}
@@ -193,6 +194,13 @@ jobs:
         if: always()
         with:
           sarif_file: trivy-results.sarif
+
+      - name: Quality gate failed
+        if: failure() && steps.trivy.outcome == 'failure'
+        run: |
+          echo "❌ Quality gate bloqueado: vulnerabilidades CRITICAL o HIGH con fix disponible en '${{ matrix.service }}'"
+          echo "Ver resultados en: Security → Code scanning"
+          exit 1
 
 
   # ──────────────────────────────────────────────
