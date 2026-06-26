@@ -96,3 +96,13 @@ module "app" {
   aws_region              = var.aws_region
   environment_variables   = lookup(local.service_env_vars, each.value, [])
 }
+
+module "observability" {
+  source = "../../modules/observability"
+
+  environment             = var.environment
+  cluster_name            = var.cluster_name
+  services                = var.services
+  labrole_arn             = data.aws_iam_role.labrole.arn
+  checkout_alb_arn_suffix = module.app["checkout"].alb_arn_suffix
+}

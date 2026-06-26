@@ -170,8 +170,11 @@ app/
 terraform/
 ├── bootstrap/          # Crea el bucket S3 y tabla DynamoDB para el estado remoto (se ejecuta una sola vez)
 ├── modules/
-│   ├── networking/     # Módulo reutilizable: VPC, subnets, Internet Gateway, NAT Gateways
-│   └── ecr/            # Módulo reutilizable: repositorios de imágenes Docker por microservicio
+│   ├── networking/     # VPC, subnets públicas y privadas, Internet Gateway, NAT Gateways
+│   ├── ecr/            # Repositorios de imágenes Docker por microservicio
+│   ├── ecs/            # Cluster ECS con capacidad FARGATE y FARGATE_SPOT
+│   ├── ecs_service/    # ALB, Target Group, Task Definition y ECS Service por microservicio
+│   └── observability/  # SNS, Lambda, CloudWatch Alarms y Dashboard (ver sección abajo)
 └── environments/
     ├── dev/            # Ambiente de desarrollo    — CIDR 10.0.0.0/16
     ├── staging/        # Ambiente de staging       — CIDR 10.1.0.0/16
@@ -219,3 +222,103 @@ terraform apply
 | dev      | 10.0.0.0/16  | 10.0.1.0/24, 10.0.2.0/24   | 10.0.3.0/24, 10.0.4.0/24   |
 | staging  | 10.1.0.0/16  | 10.1.1.0/24, 10.1.2.0/24   | 10.1.3.0/24, 10.1.4.0/24   |
 | prod     | 10.2.0.0/16  | 10.2.1.0/24, 10.2.2.0/24   | 10.2.3.0/24, 10.2.4.0/24   |
+
+---
+
+## Observabilidad y Serverless
+
+El módulo `terraform/modules/observability/` implementa un sistema de alertas automáticas sobre el servicio `checkout`, que es el más crítico del negocio (procesamiento de pagos).
+
+### Arquitectura
+
+```
+[ECS Fargate - checkout]
+        │
+        │  emite métricas automáticamente (CPU, memoria, errores HTTP)
+        ▼
+[CloudWatch] ── evalúa alarmas cada 5 minutos
+        │
+        │  cuando se supera el umbral
+        ▼
+[SNS Topic "retailstore-{env}-alerts"]
+        │
+        │  notifica a todos los suscriptores
+        ▼
+[Lambda "retailstore-{env}-alert-handler"]  ← serverless
+        │
+        │  ejecuta alert_handler.py y registra la alerta
+        ▼
+[CloudWatch Logs]
+```
+
+### Componentes
+
+| Recurso | Tipo | Descripción |
+|---|---|---|
+| SNS Topic | `aws_sns_topic` | Canal de mensajería que conecta alarmas con Lambda |
+| Lambda Function | `aws_lambda_function` | Función Python que procesa y loguea cada alerta. Se ejecuta solo cuando dispara una alarma — no hay servidor permanente |
+| CloudWatch Alarm 1 | `aws_cloudwatch_metric_alarm` | CPU del servicio `checkout` supera el 70% por 10 minutos consecutivos |
+| CloudWatch Alarm 2 | `aws_cloudwatch_metric_alarm` | Errores HTTP 5xx en el ALB del `checkout` superan 5 en 5 minutos |
+| CloudWatch Dashboard | `aws_cloudwatch_dashboard` | Paneles de CPU, memoria, errores 5xx y estado de alarmas para los 6 servicios |
+
+### Alarmas — condición de disparo y procedimiento de respuesta
+
+#### Alarma 1 — CPU alta en checkout
+
+| | |
+|---|---|
+| **Métrica** | `CPUUtilization` — `AWS/ECS` — servicio `checkout` |
+| **Condición** | Promedio de CPU > 70% durante 2 períodos consecutivos de 5 minutos (10 minutos sostenido) |
+| **Por qué este umbral** | Un pico corto de CPU es normal. 10 minutos sostenidos por encima del 70% indica un problema real de capacidad o un loop en el código |
+
+**Procedimiento de respuesta:**
+1. Ir al dashboard de CloudWatch y confirmar qué servicios están afectados
+2. Revisar los logs del servicio en CloudWatch Logs (`/ecs/checkout`) buscando errores o comportamiento anómalo
+3. Si el tráfico es legítimamente alto: escalar el `desired_count` del servicio en Terraform y hacer `apply`
+4. Si hay un bug o loop: hacer rollback de la última imagen desplegada en ECR y redeploy via CI/CD
+
+#### Alarma 2 — Errores 5xx en el ALB de checkout
+
+| | |
+|---|---|
+| **Métrica** | `HTTPCode_Target_5XX_Count` — `AWS/ApplicationELB` — ALB del servicio `checkout` |
+| **Condición** | Suma de errores 5xx > 5 en un período de 5 minutos |
+| **Por qué este umbral** | Los errores 5xx son fallos del servidor que impactan directamente al usuario. Más de 5 en 5 minutos indica una degradación del servicio de pago |
+
+**Procedimiento de respuesta:**
+1. Revisar el estado de las tareas ECS del servicio en la consola de AWS (puede haber tasks en estado `STOPPED`)
+2. Consultar los logs en CloudWatch Logs (`/ecs/checkout`) para identificar el error específico (stack trace, connection error, timeout)
+3. Si las tasks están caídas: verificar que la imagen en ECR es válida y forzar un nuevo deploy
+4. Si el error es de dependencia (base de datos, Redis): revisar el estado de esos servicios y sus logs
+
+---
+
+### Logs centralizados
+
+Todos los servicios envían sus logs automáticamente a CloudWatch Logs mediante el driver `awslogs`. Cada servicio tiene su propio log group:
+
+| Servicio | Log Group |
+|---|---|
+| ui | `/ecs/ui` |
+| catalog | `/ecs/catalog` |
+| cart | `/ecs/cart` |
+| checkout | `/ecs/checkout` |
+| orders | `/ecs/orders` |
+| admin | `/ecs/admin` |
+
+Para buscar y filtrar logs entre todos los servicios, usar **CloudWatch Logs Insights** desde la consola de AWS. Ejemplo de consulta para ver todos los errores:
+
+```
+fields @timestamp, @message
+| filter @message like /ERROR/
+| sort @timestamp desc
+| limit 50
+```
+
+### Código de la función Lambda
+
+El código está en `terraform/modules/observability/lambda/alert_handler.py`. Recibe el mensaje de SNS, identifica si la alarma disparó o se resolvió, y lo registra en CloudWatch Logs con el nivel de severidad correspondiente (`WARNING` para alarma activa, `INFO` para resuelta).
+
+### Dashboard
+
+Luego de ejecutar `terraform apply`, el output `dashboard_url` muestra la URL directa al dashboard en la consola de AWS.
