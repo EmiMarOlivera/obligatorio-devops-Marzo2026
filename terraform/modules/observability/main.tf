@@ -116,9 +116,10 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "CPU por Servicio ECS (%)"
-          view   = "timeSeries"
-          period = 300
+          title   = "CPU por Servicio ECS (%)"
+          view    = "timeSeries"
+          period  = 300
+          region  = "us-east-1"
           metrics = [
             for svc in var.services :
             ["AWS/ECS", "CPUUtilization", "ClusterName", var.cluster_name, "ServiceName", svc]
@@ -132,9 +133,10 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "Memoria por Servicio ECS (%)"
-          view   = "timeSeries"
-          period = 300
+          title   = "Memoria por Servicio ECS (%)"
+          view    = "timeSeries"
+          period  = 300
+          region  = "us-east-1"
           metrics = [
             for svc in var.services :
             ["AWS/ECS", "MemoryUtilization", "ClusterName", var.cluster_name, "ServiceName", svc]
@@ -148,9 +150,10 @@ resource "aws_cloudwatch_dashboard" "main" {
         width  = 12
         height = 6
         properties = {
-          title  = "Errores 5xx - Checkout ALB"
-          view   = "timeSeries"
-          period = 300
+          title   = "Errores 5xx - Checkout ALB"
+          view    = "timeSeries"
+          period  = 300
+          region  = "us-east-1"
           metrics = [
             ["AWS/ApplicationELB", "HTTPCode_Target_5XX_Count", "LoadBalancer", var.checkout_alb_arn_suffix]
           ]
