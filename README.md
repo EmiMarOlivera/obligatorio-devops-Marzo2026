@@ -183,6 +183,90 @@ terraform/
 
 ---
 
+## Pipelines CI/CD
+
+El repositorio tiene dos pipelines automáticos definidos en `.github/workflows/`.
+
+### Pipeline de aplicación — `app.yml`
+
+Se dispara automáticamente cuando hay cambios en `src/` en las ramas `main`, `staging` o `dev`. También se puede ejecutar manualmente eligiendo el ambiente.
+
+```
+┌─────────────────┐
+│ Secrets Scan    │  Gitleaks detecta contraseñas o tokens expuestos en el código
+│ (Gitleaks)      │
+└────────┬────────┘
+         │
+    ┌────┴────────────────────────┐
+    ▼                             ▼
+┌──────────────┐        ┌─────────────────────┐
+│ Code Scan    │        │ SCA Scan            │  Ambos corren en paralelo
+│ (Semgrep)    │        │ (Trivy filesystem)  │
+│ SAST: busca  │        │ Analiza go.mod,     │
+│ bugs de      │        │ requirements.txt y  │
+│ seguridad    │        │ package.json antes  │
+│ en el código │        │ del build           │
+└──────┬───────┘        └──────────┬──────────┘
+       └──────────┬────────────────┘
+                  ▼
+    ┌─────────────────────────┐
+    │ Build & Push to ECR     │  Construye la imagen Docker de cada servicio
+    │ (7 servicios en matrix) │  y la sube al registro privado en AWS
+    └────────────┬────────────┘
+                 ▼
+    ┌─────────────────────────┐
+    │ Image Scan (Trivy)      │  Escanea la imagen ya construida buscando CVEs
+    │ (6 servicios en matrix) │  CRITICAL o HIGH. Si encuentra uno con fix
+    │ exit-code: 1            │  disponible → el pipeline falla (quality gate)
+    └────────────┬────────────┘
+                 ▼
+    ┌─────────────────────────┐
+    │ Deploy to ECS           │  Despliega en el cluster ECS del ambiente
+    │ (6 servicios)           │  correspondiente (dev / staging / prod)
+    └────────────┬────────────┘
+                 ▼
+    ┌─────────────────────────┐
+    │ Load Test (k6)          │  Prueba de carga sobre el servicio checkout
+    └─────────────────────────┘
+```
+
+### Pipeline de infraestructura — `infra.yml`
+
+Se dispara cuando hay cambios en `terraform/` o manualmente eligiendo el ambiente. Ejecuta `terraform plan` y `terraform apply` para crear o actualizar la infraestructura en AWS.
+
+---
+
+## Seguridad integrada (DevSecOps)
+
+### Herramientas en el pipeline
+
+| Herramienta | Tipo | Cuándo corre | Qué detecta |
+|-------------|------|-------------|-------------|
+| **Gitleaks** | Secret detection | Primer paso, siempre | Contraseñas, tokens y API keys en el código |
+| **Semgrep** | SAST | Antes del build | Patrones inseguros en el código fuente |
+| **Trivy (filesystem)** | SCA | Antes del build | CVEs en dependencias declaradas (`go.mod`, `requirements.txt`, `package.json`) |
+| **Trivy (image)** | Image scan | Después del build | CVEs en la imagen Docker completa (OS + lenguaje) |
+
+### Quality gate
+
+El scan de imagen corre con `exit-code: 1` y `severity: CRITICAL,HIGH` e `ignore-unfixed: true`. Esto significa:
+
+- Si Trivy encuentra una vulnerabilidad **CRITICAL o HIGH** que **tiene fix disponible** y **no está justificada** → el pipeline falla y no se despliega.
+- Si la vulnerabilidad no tiene fix del vendor todavía (`ignore-unfixed: true`) → se ignora, porque no hay acción posible.
+- Si está en `.trivyignore` con justificación técnica → se ignora como excepción documentada.
+
+### Excepciones justificadas (`.trivyignore`)
+
+Algunos CVEs no pueden corregirse por restricciones de dependencias de terceros. Están documentados con justificación técnica en `.trivyignore`:
+
+| CVE | Servicio | Razón de la excepción |
+|-----|---------|----------------------|
+| CVE-2024-47874, CVE-2026-48818, CVE-2026-54283 | `cart` | `starlette` no puede actualizarse porque `prometheus-fastapi-instrumentator==7.0.0` exige `starlette<1.0.0` |
+| CVE-2026-33671 | `ui`, `checkout` | `picomatch` anidada en `http-proxy-middleware` no puede sobreescribirse desde `package.json` |
+| CVE-2026-5079 | `checkout` | `multer` es dependencia transitiva de NestJS — requeriría actualizar todo el framework |
+
+---
+
 ## Infraestructura en AWS (Terraform)
 
 ### Prerrequisitos
