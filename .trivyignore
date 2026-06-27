@@ -7,7 +7,11 @@ CVE-2024-47874
 CVE-2026-48818
 CVE-2026-54283
 
-# picomatch (dependencia anidada en ui)
+# picomatch (dependencia anidada en ui y checkout)
 # Se forzó picomatch>=4.0.4 en package.json pero http-proxy-middleware mantiene
 # una copia anidada en 4.0.3 en su propio node_modules que no puede ser sobreescrita.
 CVE-2026-33671
+
+# multer (dependencia transitiva de @nestjs/platform-express en checkout)
+# No está declarado directamente. Requeriría actualizar NestJS para obtener multer>=2.2.0.
+CVE-2026-5079

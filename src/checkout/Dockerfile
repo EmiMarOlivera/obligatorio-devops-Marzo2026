@@ -10,6 +10,8 @@ RUN yarn build
 
 FROM node:22.22.3-alpine3.23 AS production
 WORKDIR /app
+# Actualizar libcrypto3 y libssl3 para corregir CVE-2026-45447
+RUN apk upgrade --no-cache libcrypto3 libssl3
 # Crear usuario no root // propuesto por la ia
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
