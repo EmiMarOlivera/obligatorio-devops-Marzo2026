@@ -179,16 +179,17 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Step temporal para ver CVEs en el log del pipeline (detección de errores)
+      # Quality gate: bloquea si hay CVEs CRITICAL/HIGH sin parche y no ignorados. exit-code 1 requerido por el obligatorio.
       - name: Run Trivy vulnerability scanner (tabla para el log)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ${{ needs.build-and-push.outputs.registry }}/retailstore-${{ needs.build-and-push.outputs.environment }}-${{ matrix.service }}:${{ github.sha }}
           format: table
           severity: CRITICAL,HIGH
-          exit-code: '0'
+          exit-code: '1'
           ignore-unfixed: true
 
+      # Reporting: sube resultados a GitHub Security (Code Scanning). No bloquea — SARIF escanea todas las severidades.
       - name: Run Trivy vulnerability scanner
         id: trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -197,7 +198,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: '1'
+          exit-code: '0'
           ignore-unfixed: true
 
       - name: Upload Trivy SARIF
