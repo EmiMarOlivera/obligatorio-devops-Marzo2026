@@ -3,7 +3,7 @@
 
 # ── Stage 1: builder ──────────────────────────────────────────────────────────
 # Imagen oficial de Go, tag especifico y variante Alpine liviana.
-FROM golang:1.24.5-alpine3.22 AS builder
+FROM golang:1.25-alpine3.22 AS builder
 
 WORKDIR /app
 
