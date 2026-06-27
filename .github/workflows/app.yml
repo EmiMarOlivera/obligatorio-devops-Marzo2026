@@ -69,13 +69,42 @@ jobs:
 
 
   # ──────────────────────────────────────────────
-  # JOB 3: Build y push a ECR
+  # JOB 3: SCA - Análisis de dependencias (Trivy filesystem)
+  # Satisface punto 5.1 del obligatorio: analiza go.mod,
+  # requirements.txt y package.json ANTES de construir la imagen.
+  # Corre en paralelo con Semgrep (ambos analizan source code).
+  # ──────────────────────────────────────────────
+  sca-scan:
+    name: SCA Scan (Trivy filesystem)
+    runs-on: ubuntu-latest
+    needs: secrets-scan
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [ui, catalog, cart, checkout, orders, admin]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: 'fs'
+          scan-ref: './src/${{ matrix.service }}'
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+  # ──────────────────────────────────────────────
+  # JOB 4: Build y push a ECR
   # ──────────────────────────────────────────────
   build-and-push:
     if: github.event_name != 'pull_request'
     name: Build & Push to ECR
     runs-on: ubuntu-latest
-    needs: code-scan  # Habilitar cuando se active el job de Semgrep
+    needs: [code-scan, sca-scan]
     strategy:
       matrix:
         service: [ui, catalog, cart, checkout, orders, admin, postgres]
