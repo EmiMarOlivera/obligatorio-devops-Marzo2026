@@ -207,8 +207,6 @@ Estas variables se cargan desde `.env`, creado a partir de `.env.example`.
 
 Se utilizó Kanban para planificar y hacer seguimiento del trabajo. El tablero incluyó tareas de aplicación, infraestructura, CI/CD, seguridad, testing, observabilidad y documentación.
 
-<!-- TODO: reemplazar nombres/rutas si las capturas finales tienen otro nombre. -->
-
 ### Inicio del proyecto
 
 <img src="docs/kanban/kanban-inicio.png" alt="Tablero Kanban al inicio del proyecto" width="900">
@@ -464,17 +462,21 @@ flowchart TD
 
 ### Remediaciones y excepciones
 
-<!-- TODO: validar si se mantiene .trivyignore. El workflow referencia .trivyignore, pero el archivo debe existir si se documentan excepciones. -->
+El pipeline utiliza `.trivyignore` para registrar excepciones justificadas ante CVEs que no pueden corregirse directamente desde el código del proyecto o que dependen de actualizaciones de terceros.
 
-| Hallazgo | Servicio | Acción |
+| Hallazgo | Servicio | Acción / justificación |
 |---|---|---|
-| TODO | TODO | TODO |
+| `CVE-2024-47874`, `CVE-2026-48818`, `CVE-2026-54283` | `cart` | Asociadas a `starlette`, dependencia transitiva de FastAPI. No se puede actualizar a `starlette>=1.3.1` porque `prometheus-fastapi-instrumentator==7.0.0` requiere `starlette<1.0.0`. Se documenta como excepción por restricción de dependencia de terceros. |
+| `CVE-2026-33671` | `ui`, `checkout` | Asociada a `picomatch`. Se forzó `picomatch>=4.0.4` en `package.json`, pero `http-proxy-middleware` mantiene una copia anidada en `4.0.3` que no puede ser sobreescrita directamente. Se documenta como excepción técnica. |
+| `CVE-2026-5079` | `checkout` | Asociada a `multer`, dependencia transitiva de `@nestjs/platform-express`. No está declarada directamente por el proyecto; su remediación requiere actualizar NestJS o sus dependencias transitivas. |
+
+Estas excepciones no deshabilitan los controles de seguridad generales: el pipeline continúa ejecutando SCA e image scanning con Trivy y bloquea vulnerabilidades `CRITICAL` o `HIGH` no justificadas.
 
 ### Manejo de secretos
 
 En ejecución local, los secretos se cargan desde `.env`, archivo ignorado por Git. En GitHub Actions, las credenciales de AWS y tokens se obtienen desde GitHub Secrets.
 
-<!-- TODO: revisar Terraform antes de entrega. Actualmente hay valores como retail_pass en archivos de ambiente. Para cumplir estrictamente el requisito de secretos, conviene parametrizarlos como variables sensibles o usar un mecanismo de secretos. -->
+Como mejora identificada, la contraseña de PostgreSQL utilizada por los servicios en Terraform debería parametrizarse como variable sensible o integrarse con un gestor de secretos. En la versión actual, el valor se encuentra definido en los archivos de ambiente para permitir el despliegue en el contexto del laboratorio, pero no representa una práctica recomendada para producción.
 
 ## Infraestructura como código
 
@@ -535,6 +537,8 @@ terraform apply
 
 La solución de observabilidad utiliza CloudWatch para métricas, logs, dashboard y alarmas. Además, se implementa una función Lambda integrada con SNS para procesar eventos de alarma, cumpliendo el requisito serverless con un propósito operativo claro.
 
+En cuanto a trazas, el servicio `catalog` incluye instrumentación con OpenTelemetry a nivel de código. En esta entrega, la centralización operativa se concentró en métricas y logs mediante CloudWatch; la exportación y visualización centralizada de trazas queda identificada como una mejora futura.
+
 ```mermaid
 flowchart TD
     services[ECS Fargate Services] --> metrics[CloudWatch Metrics<br/>CPU, memoria, errores 5xx]
@@ -591,8 +595,6 @@ fields @timestamp, @message
 La función `alert_handler.py` recibe mensajes desde SNS cuando una alarma cambia de estado. La función registra el evento en CloudWatch Logs y permite centralizar el procesamiento de alertas sin mantener servidores permanentes.
 
 ## Evidencias
-
-<!-- TODO: reemplazar rutas/nombres al agregar las imágenes finales. -->
 
 ### Pull Requests con revisión
 
@@ -658,7 +660,6 @@ El uso se concentró en:
 
 - interpretar errores de pipelines, Terraform, Docker y configuración de servicios;
 - comparar alternativas de implementación para CI/CD, seguridad, observabilidad e infraestructura;
-- revisar consistencia entre la consigna, la solución implementada y la documentación;
 - mejorar la redacción técnica del README;
 - proponer diagramas Mermaid y estructuras de documentación.
 
