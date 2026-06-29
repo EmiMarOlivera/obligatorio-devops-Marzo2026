@@ -164,6 +164,7 @@ Estas variables se cargan desde `.env`, creado a partir de `.env.example`.
 | `TF_BACKEND_BUCKET` | Secret | Nombre del bucket S3 para estado remoto Terraform |
 | `SEMGREP_APP_TOKEN` | Secret | Token opcional para Semgrep |
 | `APP_URL` | Environment variable | URL base usada por k6 en el pipeline |
+| `K6_BASE_URL` | Environment variable | URL base consumida por el script k6. En GitHub Actions se asigna desde `vars.APP_URL` |
 
 ## Estructura del repositorio
 
@@ -218,6 +219,8 @@ Se utilizó Kanban para planificar y hacer seguimiento del trabajo. El tablero i
 ### Cierre del proyecto
 
 <img src="docs/kanban/kanban-cierre.png" alt="Tablero Kanban al cierre del proyecto" width="900">
+
+<img src="docs/kanban/kanban-final-2.png" alt="Detalle del tablero Kanban al cierre del proyecto" width="900">
 
 ### Evolución del trabajo
 
@@ -309,6 +312,8 @@ flowchart TD
 ### Pipeline de infraestructura
 
 El pipeline de infraestructura se ejecuta ante cambios en `terraform/` o manualmente. En Pull Requests ejecuta validación y plan; fuera de PR aplica los cambios.
+
+El bucket S3 utilizado como backend remoto de Terraform se crea previamente de forma manual y su nombre se configura en GitHub Actions mediante el secret `TF_BACKEND_BUCKET`. El pipeline no crea ese bucket: lo utiliza durante `terraform init` para leer y actualizar el estado remoto.
 
 ```mermaid
 flowchart TD
@@ -513,22 +518,22 @@ flowchart LR
 
 ### Bootstrap
 
-El directorio `terraform/bootstrap` crea los recursos necesarios para el estado remoto:
+Para usar estado remoto, primero se crea manualmente un bucket S3 en AWS. El nombre de ese bucket se guarda en GitHub Actions como secret `TF_BACKEND_BUCKET` y se pasa a Terraform durante `terraform init`.
 
-- Bucket S3 para `terraform.tfstate`.
-- Tabla DynamoDB para locking.
+El backend remoto queda compuesto por:
 
-```bash
-cd terraform/bootstrap
-terraform init
-terraform apply
-```
-
-Luego, cada ambiente se inicializa indicando el bucket remoto:
+- Bucket S3 creado manualmente para almacenar `terraform.tfstate`.
+- Tabla DynamoDB para locking del estado, cuando se utiliza bloqueo remoto.
 
 ```bash
 cd terraform/environments/dev
 terraform init -backend-config="bucket=<bucket-tfstate>"
+```
+
+Luego, cada ambiente se planifica y aplica usando su archivo `terraform.tfvars`:
+
+```bash
+cd terraform/environments/dev
 terraform plan -var-file="terraform.tfvars"
 terraform apply
 ```
@@ -615,6 +620,12 @@ Vista de catálogo/tienda:
 Vista del panel de administración:
 
 <img src="docs/evidencia/app-admin.png" alt="Panel de administración abierto" width="900">
+
+### Lambda y CloudWatch
+
+Evidencia de la integración serverless y observabilidad mediante Lambda y CloudWatch:
+
+<img src="docs/evidencia/evidencia-lambda-cloudwatch.png" alt="Evidencia de Lambda integrada con CloudWatch" width="900">
 
 ## Decisiones técnicas
 
