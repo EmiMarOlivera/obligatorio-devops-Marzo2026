@@ -646,11 +646,12 @@ Se utilizó CloudWatch por su integración nativa con ECS y ALB. SNS y Lambda pe
 
 ## Lecciones aprendidas
 
-- La separación por microservicios facilita despliegues independientes, pero exige documentar claramente variables, puertos y dependencias.
-- Los quality gates deben definirse con criterios accionables; bloquear todo sin distinguir severidad o fix disponible puede frenar el flujo sin aportar valor.
-- Terraform modular ayuda a mantener orden, pero el manejo de secretos debe diseñarse desde el inicio.
-- Las evidencias son parte del entregable: capturas de tablero, Pull Requests y aplicación funcionando ayudan a demostrar el proceso, no solo el resultado técnico.
-- La observabilidad debe pensarse como una herramienta operativa: las alarmas necesitan umbrales y procedimientos de respuesta, no solo configuración técnica.
+- A nivel grupal nos parecio interesante y desafiante en cuanto a las diferentes posiblidades / opciones que estan disponible para el amrado de soluciones de DevOps que se pueden implementar. 
+- Descubrir herramientas como Docker y entender todo su ecosistema es fundamental para poder desplegar en la nube, ya sea AWS o cual sea. 
+- En las ultimas etapas del proyecto logramos entender la foto completa del producto y toda su complejidad. 
+- Nos dimos cuenta de la importancia de la seguridad, tanto del codigo como de las imagenes al momento de desplegar un repositorio. 
+- Por ultimo la conclusion mas importante que sacamos es que el trabajo del desarrollador es entender como orquestar y saber hasta donde se le permite ese uso a la IA para construir algo seguro, escalable y ordenado.
+
 
 ## Uso de IA generativa
 
@@ -661,6 +662,5 @@ El uso se concentró en:
 - interpretar errores de pipelines, Terraform, Docker y configuración de servicios;
 - comparar alternativas de implementación para CI/CD, seguridad, observabilidad e infraestructura;
 - mejorar la redacción técnica del README;
-- proponer diagramas Mermaid y estructuras de documentación.
 
 La IA no sustituyó la toma de decisiones del equipo. Las sugerencias generadas fueron revisadas, adaptadas y validadas por los integrantes antes de incorporarse al proyecto.
