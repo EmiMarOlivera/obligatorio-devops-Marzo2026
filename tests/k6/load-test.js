@@ -16,7 +16,7 @@ export const options = {
 const BASE_URL = __ENV.K6_BASE_URL || 'http://localhost:8080';
 
 export default function () {
-  const catalog = http.get(`${BASE_URL}/catalog/products`);
+  const catalog = http.get(`${BASE_URL}/api/catalog/products`);
   check(catalog, {
     'catalog products: status 200': (r) => r.status === 200,
     'catalog products: responde en menos de 2s': (r) => r.timings.duration < 2000,
